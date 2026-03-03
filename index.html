@@ -1136,13 +1136,10 @@ function SettingsPage() {
   const [form, setForm] = useState({...DEFAULT_SETTINGS, ...state.settings});
   const [showBrevo, setShowBrevo] = useState(false);
   const [showGemini, setShowGemini] = useState(false);
-  const formRef = React.useRef(form);
-  useEffect(() => { formRef.current = form; }, [form]);
   const upd = (key, val) => setForm(p=>({...p, [key]:val}));
 
-  const save = (overrideForm) => {
-    const data = overrideForm || formRef.current;
-    dispatch({type:'SET_SETTINGS', data});
+  const save = () => {
+    dispatch({type:'SET_SETTINGS', data: form});
     toast('설정이 저장되었습니다');
   };
 
