@@ -938,7 +938,7 @@ function DashboardPage() {
    ========================================================= */
 
 /* ── OneDrive Section 컴포넌트 (7단계) ── */
-function OneDriveSection({ form, upd, state, dispatch, toast, save }) {
+function OneDriveSection({ form, upd, state, dispatch, toast }) {
   const [odStatus, setOdStatus]   = useState('idle');   // idle | connecting | syncing | loading | done | error
   const [odMsg,    setOdMsg]      = useState('');
   const [odAccount, setOdAccount] = useState(() => OneDriveSvc.getAccountName());
@@ -1010,7 +1010,7 @@ function OneDriveSection({ form, upd, state, dispatch, toast, save }) {
       if (data.templates   && data.templates.length   > 0) { dispatch({type:'SET_TEMPLATES',   data:data.templates});   loaded++; }
       if (data.automations && data.automations.length > 0) { dispatch({type:'SET_AUTOMATIONS', data:data.automations}); loaded++; }
       const ts = new Date().toISOString();
-      upd('oneDriveLastSync', ts); save();
+      saveWith({ oneDriveLastSync: ts });
       setOdStatus('done'); setOdMsg(`✅ ${loaded}개 데이터 로드 완료 (${new Date(ts).toLocaleString('ko-KR')})`);
       toast(`OneDrive에서 데이터 로드 완료 (${loaded}개)`);
     } catch(e) { setOdStatus('error'); setOdMsg(`불러오기 실패: ${e.message}`); }
@@ -2420,7 +2420,7 @@ const PVARS           = ['{{이름}}','{{회사}}','{{이메일}}','{{날짜}}']
 
 /* Gemini API 호출 */
 async function callGemini(apiKey, prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({
