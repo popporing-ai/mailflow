@@ -1062,18 +1062,24 @@ function OneDriveSection({ form, upd, state, dispatch, toast }) {
         <Badge text={isConnected?'연결됨':'미연결'} color={isConnected?'green':'red'}/>
       </div>
 
-      {/* Azure 앱 등록 안내 */}
-      <div style={{padding:'12px 16px',borderRadius:R.lg,background:C.bg,border:`1px solid ${C.border}`,fontSize:13,color:C.textSec,lineHeight:1.9,marginBottom:16}}>
-        <b style={{color:C.warning}}>Azure 앱 등록 필요</b>: Microsoft Entra ID(구 Azure AD)에서 앱을 먼저 등록해야 합니다.<br/>
-        <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank" style={{color:C.accentL,textDecoration:'none'}}>→ portal.azure.com</a>
-        {' '}에서 새 앱 등록 → Redirect URI: <code style={{background:C.surface2,padding:'1px 5px',borderRadius:3,fontSize:12}}>{window.location.href.split('?')[0].split('#')[0]}</code>
-        {' '}→ API 권한: <code style={{background:C.surface2,padding:'1px 5px',borderRadius:3,fontSize:12}}>Files.ReadWrite</code> 추가
-      </div>
+      {/* Azure 앱 등록 안내 — 미설정 시만 경고, 설정 시 정보 표시 */}
+      {!form.msalClientId ? (
+        <div style={{padding:'12px 16px',borderRadius:R.lg,background:`${C.warning}11`,border:`1px solid ${C.warning}44`,fontSize:13,color:C.textSec,lineHeight:1.9,marginBottom:16}}>
+          <b style={{color:C.warning}}>Azure 앱 등록 필요</b>: Microsoft Entra ID(구 Azure AD)에서 앱을 먼저 등록해야 합니다.<br/>
+          <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank" style={{color:C.accentL,textDecoration:'none'}}>→ portal.azure.com</a>
+          {' '}에서 새 앱 등록 → Redirect URI: <code style={{background:C.surface2,padding:'1px 5px',borderRadius:3,fontSize:12}}>{window.location.href.split('?')[0].split('#')[0]}</code>
+          {' '}→ API 권한: <code style={{background:C.surface2,padding:'1px 5px',borderRadius:3,fontSize:12}}>Files.ReadWrite</code> 추가
+        </div>
+      ) : (
+        <div style={{padding:'10px 14px',borderRadius:R.lg,background:`${C.success}11`,border:`1px solid ${C.success}44`,fontSize:13,color:C.textSec,lineHeight:1.8,marginBottom:16}}>
+          ✅ Azure 앱이 등록되어 있습니다. Redirect URI가 <code style={{background:C.surface2,padding:'1px 5px',borderRadius:3,fontSize:12}}>{window.location.href.split('?')[0].split('#')[0]}</code>로 설정되어 있는지 확인하세요.
+        </div>
+      )}
 
       {/* Client ID 입력 */}
       <div style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:16}}>
         <Input label="Azure App Client ID (Application ID)" value={form.msalClientId||''}
-          onChange={e=>upd('msalClientId', e.target.value)}
+          onChange={v=>upd('msalClientId', v)}
           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
           type={showClientId?'text':'password'} style={{flex:1}}/>
         <Btn variant="ghost" size="sm" onClick={()=>setShowClientId(!showClientId)} style={{marginBottom:0}}>
@@ -1131,19 +1137,9 @@ function OneDriveSection({ form, upd, state, dispatch, toast }) {
   );
 }
 
-function SettingsPage() {
-  const {state, dispatch, toast} = useApp();
-  const [form, setForm] = useState({...DEFAULT_SETTINGS, ...state.settings});
-  const [showBrevo, setShowBrevo] = useState(false);
-  const [showGemini, setShowGemini] = useState(false);
-  const upd = (key, val) => setForm(p=>({...p, [key]:val}));
-
-  const save = () => {
-    dispatch({type:'SET_SETTINGS', data: form});
-    toast('설정이 저장되었습니다');
-  };
-
-  const Section = ({icon, title, badge, children}) => (
+/* Section 컴포넌트: SettingsPage 외부에 정의해야 매 키입력마다 재생성되지 않음 */
+function SettingsSection({icon, title, badge, children}) {
+  return (
     <Card style={{marginBottom:16}}>
       <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20,paddingBottom:16,borderBottom:`1px solid ${C.border}`}}>
         <div style={{width:36,height:36,borderRadius:10,background:`${C.accent}20`,
@@ -1158,6 +1154,21 @@ function SettingsPage() {
       {children}
     </Card>
   );
+}
+
+function SettingsPage() {
+  const {state, dispatch, toast} = useApp();
+  const [form, setForm] = useState({...DEFAULT_SETTINGS, ...state.settings});
+  const [showBrevo, setShowBrevo] = useState(false);
+  const [showGemini, setShowGemini] = useState(false);
+  const upd = (key, val) => setForm(p=>({...p, [key]:val}));
+
+  const save = () => {
+    dispatch({type:'SET_SETTINGS', data: form});
+    toast('설정이 저장되었습니다');
+  };
+
+  const Section = SettingsSection;
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:0}}>
@@ -1203,7 +1214,7 @@ function SettingsPage() {
         <div style={{display:'flex',flexDirection:'column',gap:14}}>
           <div style={{padding:'12px 16px',borderRadius:R.lg,background:C.bg,border:`1px solid ${C.border}`,
             fontSize:13,color:C.textSec,lineHeight:1.8}}>
-            <b style={{color:C.warning}}>Google AI Studio 무료</b>: 1,500회/일 무료 (gemini-1.5-flash)<br/>
+            <b style={{color:C.warning}}>Google AI Studio 무료</b>: 1,500회/일 무료 (gemini-flash-latest)<br/>
             <a href="https://aistudio.google.com" target="_blank"
               style={{color:C.accentL,textDecoration:'none'}}>→ aistudio.google.com</a>에서 "Get API Key" 클릭
           </div>
@@ -1995,15 +2006,14 @@ function CampaignEditor({ open, campaign, onClose, onSave }) {
         <div style={{display:'flex',flexDirection:'column',gap:16}}>
           <div>
             <label style={{display:'block',fontSize:12,color:C.textSec,marginBottom:6}}>캠페인 이름 *</label>
-            <Input value={form.name} onChange={e=>upd('name',e.target.value)} placeholder="예: 3월 봄 프로모션"/>
+            <Input value={form.name} onChange={v=>upd('name',v)} placeholder="예: 3월 봄 프로모션"/>
           </div>
 
           <div>
             <label style={{display:'block',fontSize:12,color:C.textSec,marginBottom:6}}>이메일 템플릿 *</label>
-            <Select value={form.templateId} onChange={e=>upd('templateId',e.target.value)} style={{width:'100%'}}>
-              <option value="">-- 템플릿 선택 --</option>
-              {templates.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-            </Select>
+            <Select value={form.templateId} onChange={v=>upd('templateId',v)} style={{width:'100%'}}
+              options={[{value:'',label:'-- 템플릿 선택 --'}, ...templates.map(t=>({value:t.id,label:t.name}))]}
+            />
           </div>
 
           <div>
@@ -2019,10 +2029,9 @@ function CampaignEditor({ open, campaign, onClose, onSave }) {
               ))}
             </div>
             {form.segment.type==='tag' && (
-              <Select value={form.segment.value} onChange={e=>updSeg('value',e.target.value)} style={{width:'100%'}}>
-                <option value="">-- 태그 선택 --</option>
-                {allTags.map(t=><option key={t} value={t}>{t}</option>)}
-              </Select>
+              <Select value={form.segment.value} onChange={v=>updSeg('value',v)} style={{width:'100%'}}
+                options={[{value:'',label:'-- 태그 선택 --'}, ...allTags.map(t=>({value:t,label:t}))]}
+              />
             )}
             <div style={{marginTop:8,padding:'8px 12px',background:C.surface2,borderRadius:6,fontSize:12,color:C.textSec}}>
               수신자: <strong style={{color:C.text}}>{segContacts.length.toLocaleString()}명</strong>
@@ -3057,11 +3066,10 @@ function StepEditor({ step, onChange }) {
 
   if (step.type === 'send') return (
     <div style={{display:'flex',flexDirection:'column',gap:8}}>
-      <Select value={step.templateId||''} onChange={e=>upd('templateId',e.target.value)} style={{width:'100%'}}>
-        <option value="">-- 템플릿 선택 --</option>
-        {templates.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-      </Select>
-      <Input value={step.subject||''} onChange={e=>upd('subject',e.target.value)}
+      <Select value={step.templateId||''} onChange={v=>upd('templateId',v)} style={{width:'100%'}}
+        options={[{value:'',label:'-- 템플릿 선택 --'}, ...templates.map(t=>({value:t.id,label:t.name}))]}
+      />
+      <Input value={step.subject||''} onChange={v=>upd('subject',v)}
         placeholder="제목 (비워두면 템플릿 제목 사용)" style={{marginBottom:0}}/>
     </div>
   );
@@ -3071,19 +3079,17 @@ function StepEditor({ step, onChange }) {
       <input type="number" min={1} max={365} value={step.delay||1} onChange={e=>upd('delay',+e.target.value)}
         style={{width:70,background:C.surface2,border:`1px solid ${C.border}`,borderRadius:7,
           padding:'8px 10px',color:C.text,fontSize:14,textAlign:'center'}}/>
-      <Select value={step.unit||'days'} onChange={e=>upd('unit',e.target.value)} style={{flex:1}}>
-        <option value="hours">시간 후</option>
-        <option value="days">일 후</option>
-      </Select>
+      <Select value={step.unit||'days'} onChange={v=>upd('unit',v)} style={{flex:1}}
+        options={[{value:'hours',label:'시간 후'},{value:'days',label:'일 후'}]}
+      />
     </div>
   );
 
   if (step.type === 'condition') return (
     <div>
-      <Select value={step.check||'opened'} onChange={e=>upd('check',e.target.value)} style={{width:'100%'}}>
-        <option value="opened">이메일 오픈 여부</option>
-        <option value="clicked">링크 클릭 여부</option>
-      </Select>
+      <Select value={step.check||'opened'} onChange={v=>upd('check',v)} style={{width:'100%'}}
+        options={[{value:'opened',label:'이메일 오픈 여부'},{value:'clicked',label:'링크 클릭 여부'}]}
+      />
       <p style={{margin:'8px 0 0',fontSize:11,color:C.textSec}}>
         YES → 다음 스텝 진행 / NO → 다음 스텝 건너뜀
       </p>
@@ -3138,24 +3144,21 @@ function AutomationEditor({ open, automation, onClose, onSave }) {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
           <div>
             <label style={{display:'block',fontSize:12,color:C.textSec,marginBottom:6}}>플로우 이름 *</label>
-            <Input value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="예: 신규 고객 웰컴 시퀀스"/>
+            <Input value={form.name} onChange={v=>setForm(p=>({...p,name:v}))} placeholder="예: 신규 고객 웰컴 시퀀스"/>
           </div>
           <div>
             <label style={{display:'block',fontSize:12,color:C.textSec,marginBottom:6}}>트리거</label>
-            <Select value={form.trigger.type} onChange={e=>setForm(p=>({...p,trigger:{...p.trigger,type:e.target.value}}))} style={{width:'100%'}}>
-              <option value="campaign_sent">캠페인 발송 후</option>
-              <option value="contact_added">수신자 추가 시</option>
-              <option value="manual">수동 실행</option>
-            </Select>
+            <Select value={form.trigger.type} onChange={v=>setForm(p=>({...p,trigger:{...p.trigger,type:v}}))} style={{width:'100%'}}
+              options={[{value:'campaign_sent',label:'캠페인 발송 후'},{value:'contact_added',label:'수신자 추가 시'},{value:'manual',label:'수동 실행'}]}
+            />
           </div>
         </div>
         {form.trigger.type === 'campaign_sent' && (
           <div>
             <label style={{display:'block',fontSize:12,color:C.textSec,marginBottom:6}}>트리거 캠페인</label>
-            <Select value={form.trigger.campaignId||''} onChange={e=>setForm(p=>({...p,trigger:{...p.trigger,campaignId:e.target.value}}))} style={{width:'100%'}}>
-              <option value="">-- 캠페인 선택 (선택사항) --</option>
-              {campaigns.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-            </Select>
+            <Select value={form.trigger.campaignId||''} onChange={v=>setForm(p=>({...p,trigger:{...p.trigger,campaignId:v}}))} style={{width:'100%'}}
+              options={[{value:'',label:'-- 캠페인 선택 (선택사항) --'}, ...campaigns.map(c=>({value:c.id,label:c.name}))]}
+            />
           </div>
         )}
 
@@ -3238,10 +3241,9 @@ function AutomationRunModal({ open, automation, onClose, onRun }) {
             ))}
           </div>
           {segType==='tag' && (
-            <Select value={segTag} onChange={e=>setSegTag(e.target.value)} style={{width:'100%',marginBottom:8}}>
-              <option value="">-- 태그 선택 --</option>
-              {allTags.map(t=><option key={t} value={t}>{t}</option>)}
-            </Select>
+            <Select value={segTag} onChange={v=>setSegTag(v)} style={{width:'100%',marginBottom:8}}
+              options={[{value:'',label:'-- 태그 선택 --'}, ...allTags.map(t=>({value:t,label:t}))]}
+            />
           )}
           <div style={{padding:'10px 14px',background:C.surface2,borderRadius:8,fontSize:13,color:C.textSec}}>
             등록 예정: <strong style={{color:C.text}}>{segContacts.length}명</strong>
